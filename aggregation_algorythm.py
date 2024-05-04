@@ -8,6 +8,8 @@ import json
 class Aggregator:
     
     def __init__(self, data: dict) -> None:
+        self.__create_connection()
+        
         try:
             data = json.loads(data)
             self.__down_date = datetime.strptime(data['dt_from'], '%Y-%m-%dT%H:%M:%S')
@@ -17,8 +19,8 @@ class Aggregator:
                 raise ValueError('Need correct value like: hour, day, month')
         except ValueError as e:
             print(str(e))
-        self.__create_connection()
-    
+            self.__client.close()
+
     def __create_connection(self) -> None:
         self.__client = MongoClient(MDB_URL)
         self.__collection = self.__client['salary_data']['sample_collection']
