@@ -28,16 +28,24 @@ class Aggregator:
         self.dates = []
         match self.__aggregation:
             case 'month':
-                for month in range(self.__down_date.month, self.__up_date.month + 1):
+                current_year = self.__down_date.year
+                for month in range(self.__down_date.month, 12 * (self.__up_date.year - self.__down_date.year) + self.__up_date.month + 1):
                     summ = 0
                     days = 1
                     deltayear = 0
+                    next_year = False
+                    if self.__up_date.year - self.__down_date.year != 0:
+                        if month % 12 != 0:
+                            month %= 12
+                        else:
+                            month = 12
+                            next_year = True
                     if self.__down_date.day != 1:
                         days = self.__down_date.day
-                    d_dt = self.__down_date.replace(month=month, day=days, hour=0, minute=0, second=0)
                     if month % 12 == 0:
                         deltayear = 1
-                    u_dt = self.__down_date.replace(year=self.__down_date.year + deltayear, month=month % 12 + 1, day=1, hour=23, minute=59, second=0) - timedelta(days=1)
+                    d_dt = self.__down_date.replace(year=current_year, month=month, day=days, hour=0, minute=0, second=0)
+                    u_dt = self.__down_date.replace(year=current_year + deltayear, month=month % 12 + 1, day=1, hour=23, minute=59, second=0) - timedelta(days=1)
                     collection = self.__collection.find({
                         'dt': {
                             '$gte': d_dt,
@@ -45,23 +53,68 @@ class Aggregator:
                             }
                         },  {
                             '_id': 0,
-                            'value': 1
+                            'value': 1,
+                            'dt': 1
                         })
                     for val in collection:
                         summ += val['value']
                     self.dates.append(datetime.isoformat(d_dt))
                     self.results.append(summ)
-            case 'day':
-                pass
+                    if next_year:
+                        current_year += 1
+            case 'day': 
+                current_year = self.__down_date.year
+                for month in range(self.__down_date.month, 12 * (self.__up_date.year - self.__down_date.year) + self.__up_date.month + 1):  
+                    next_year = False
+                    deltayear = 0 
+                    if self.__up_date.year - self.__down_date.year != 0:
+                        if month % 12 != 0:
+                            month %= 12
+                        else:
+                            month = 12
+                            next_year = True
+                    if month == self.__down_date.month:
+                        down_day = self.__down_date.day
+                    else:
+                        down_day = 1
+                    if month != self.__up_date.month:
+                        up_day = (self.__down_date.replace(year=current_year, month=month % 12 + 1, day=1) - timedelta(days=1)).day + 1
+                    else:
+                        up_day = self.__up_date.day + 1
+                    for day in range(down_day, 
+                                    up_day): 
+                        summ = 0                        
+                        if month % 12 == 0:
+                            deltayear = 1
+                        d_dt = self.__down_date.replace(year=current_year, month=month, day=day, hour=0, minute=0, second=0)
+                        u_dt = self.__down_date.replace(year=current_year, month=month, day=day, hour=23, minute=59, second=0)
+                        collection = self.__collection.find({
+                            'dt': {
+                                '$gte': d_dt,
+                                '$lte': u_dt
+                                }
+                            },  {
+                                '_id': 0,
+                                'value': 1,
+                                'dt': 1
+                            })
+                        for val in collection:
+                            summ += val['value']
+                        self.dates.append(datetime.isoformat(d_dt))
+                        self.results.append(summ)
+                    if next_year:
+                        current_year += 1
+                
 
                 
     def get_json(self) -> str:
         self.__aggregate_data()
+        self.__client.close()
 
 a = Aggregator({
-"dt_from":"2022-09-01T00:00:00",
-"dt_upto":"2022-12-31T23:59:00",
-"group_type":"month"
+   "dt_from": "2022-10-01T00:00:00",
+   "dt_upto": "2022-11-30T23:59:00",
+   "group_type": "day"
 })
 a.get_json()
 print(a.results, a.dates)
