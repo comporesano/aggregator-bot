@@ -17,7 +17,6 @@ class Aggregator:
                 raise ValueError('Need correct value like: hour, day, month')
         except ValueError as e:
             print(str(e))
-        
         self.__create_connection()
     
     def __create_connection(self) -> None:
@@ -59,8 +58,8 @@ class Aggregator:
                         })
                     for val in collection:
                         summ += val['value']
-                    self.dates.append(datetime.isoformat(d_dt))
-                    self.results.append(summ)
+                    self.__dates.append(datetime.isoformat(d_dt))
+                    self.__results.append(summ)
                     if next_year:
                         current_year += 1
             case 'day': 
