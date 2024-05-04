@@ -21,6 +21,7 @@ dp = Dispatcher(bot=bot, storage=storage)
 
 @dp.message_handler(commands=['start'])
 async def handle_start(message: types.Message, state: FSMContext) -> None:
+    await message.answer('Bot started!')
     await AggrState.wait_for_json.set()
 
 @dp.message_handler(state=AggrState.wait_for_json)
