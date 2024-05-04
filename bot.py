@@ -1,13 +1,34 @@
 from settings import TOKEN
-from datetime import datetime, timedelta
+from aiogram import Bot, Dispatcher, types, executor
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aggregation_algorythm import Aggregator
 
-date_1 = '2022-09-01T00:00:00'
-date_2 = '2023-05-01T00:00:00'
+class AggregatorBot(Bot):
+    
+    def __init__(self) -> None:
+        super().__init__(token=TOKEN)
 
-date_1 = datetime.strptime(date_1, '%Y-%m-%dT%H:%M:%S')
-date_2 = datetime.strptime(date_2, '%Y-%m-%dT%H:%M:%S')
 
-for i in list(range(date_1.month, (date_2.year - date_1.year) * 12 + date_2.month)):
-    if i != 12:
-        i %= 12
-    print(i)
+class AggrState(StatesGroup):
+    wait_for_json = State()
+
+
+bot = AggregatorBot()
+storage = MemoryStorage()
+dp = Dispatcher(bot=bot, storage=storage)
+
+@dp.message_handler(commands=['start'])
+async def handle_start(message: types.Message, state: FSMContext) -> None:
+    await AggrState.wait_for_json.set()
+
+@dp.message_handler(state=AggrState.wait_for_json)
+async def get_aggr_json(message: types.Message, state: FSMContext) -> None:
+    json = message.text
+    aggr = Aggregator(json)
+    
+    await message.answer(aggr.get_json())
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
